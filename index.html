@@ -5,10 +5,18 @@
   <title>小纸盒的个人网站</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
+    /* 引入自定义字体（放在 fonts/ 文件夹下） */
+    @font-face {
+      font-family: "CocaColaKaiTi";   /* 给字体起个名字 */
+      src: url("fonts/Coca-ColaCareFontKaiTi.TTF") format("truetype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
     /* 基本样式 */
     body {
       margin: 0;
-      font-family: "Microsoft YaHei", sans-serif;
+      font-family: "CocaColaKaiTi", "Microsoft YaHei", sans-serif;
       background: url("fig1.jpg") no-repeat center center fixed;
       background-size: cover;
       color: #fff;
@@ -98,10 +106,8 @@
   </div>
 
   <script>
-    // ============ 配置区（已替换为你提供的 raw 链接） ============
     const RAW_URL = 'https://raw.githubusercontent.com/chenzhihe424/chenzhihe424.github.io/refs/heads/main/text.txt';
-    const AUTO_REFRESH_SECONDS = 0; // >0 表示自动每 N 秒刷新一次（例如 30），设为 0 禁用自动刷新。
-    // ==========================================================================
+    const AUTO_REFRESH_SECONDS = 0;
 
     const elText = document.getElementById('copyText');
     const elHint = document.getElementById('updatedHint');
@@ -110,7 +116,7 @@
     function looksLikeHtml(str) {
       if (!str) return false;
       const s = str.trim().slice(0, 200).toLowerCase();
-      return s.startsWith('<!doctype') || s.startsWith('<html') || s.startsWith('<!doctype') || /<html|<head|<body|<div|<pre|<span/.test(s);
+      return s.startsWith('<!doctype') || s.startsWith('<html') || /<html|<head|<body|<div|<pre|<span/.test(s);
     }
 
     function setTextContent(text) {
@@ -130,7 +136,6 @@
         .then(r => r.text().then(t => ({ ok: r.ok, text: t, status: r.status })))
         .then(({ok, text, status}) => {
           if (!ok || looksLikeHtml(text)) {
-            // 相对路径失败或返回 HTML -> 尝试 raw 链接
             if (RAW_URL && RAW_URL.indexOf('raw.githubusercontent.com') !== -1) {
               return fetch(RAW_URL + (RAW_URL.includes('?') ? '&' : '?') + '_=' + Date.now(), {cache: "no-store"})
                 .then(r2 => {
@@ -139,21 +144,20 @@
                 })
                 .then(text2 => {
                   if (looksLikeHtml(text2)) {
-                    throw new Error('raw 返回的是 HTML 页面（可能链接错误或网络问题）');
+                    throw new Error('raw 返回的是 HTML 页面');
                   }
                   setTextContent(text2);
                 });
             } else {
-              throw new Error('相对路径返回了 HTML，且 RAW_URL 未正确配置或不是 raw.githubusercontent 链接。');
+              throw new Error('相对路径返回了 HTML，且 RAW_URL 未正确配置。');
             }
           } else {
-            // 相对路径返回的是纯文本，直接使用
             setTextContent(text);
           }
         })
         .catch(err => {
           console.error('加载 text.txt 出错：', err);
-          setError('无法加载 text.txt（请检查文件是否存在并确认 RAW_URL 正确）');
+          setError('无法加载 text.txt');
         });
     }
 
@@ -187,10 +191,7 @@
       doCopy(elText.textContent || '');
     });
 
-    // 初始加载
     loadTextAuto();
-
-    // 自动刷新（如果设了时间）
     if (AUTO_REFRESH_SECONDS && AUTO_REFRESH_SECONDS > 0) {
       setInterval(loadTextAuto, AUTO_REFRESH_SECONDS * 1000);
     }
