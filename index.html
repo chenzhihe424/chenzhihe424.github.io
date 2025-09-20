@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>小纸盒的个人网站</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
+    /* 基本样式 */
     body {
       margin: 0;
       font-family: "Microsoft YaHei", sans-serif;
@@ -12,97 +14,185 @@
       color: #fff;
       text-align: center;
     }
-    .container {
+    .overlay {
       background: rgba(0,0,0,0.6);
       padding: 40px;
-      margin: 80px auto;
+      margin: 60px auto;
       border-radius: 15px;
-      max-width: 600px;
+      max-width: 820px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
     }
     h1 {
       margin-top: 0;
       font-size: 2.2em;
+      font-weight: 700;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
     }
-    a {
-      color: #00c3ff;
-      text-decoration: none;
-      transition: 0.3s;
-    }
-    a:hover {
-      color: #ffd700;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      margin: 10px 0;
-    }
+    p.lead { margin: 8px 0 20px; color: rgba(255,255,255,0.9); }
+    a { color: #00c3ff; text-decoration: none; transition: 0.25s; }
+    a:hover { color: #ffd700; }
+
+    /* 可复制文本框样式 */
     .copy-box {
       margin-top: 20px;
-      background: #222;
-      padding: 15px;
+      background: rgba(20,20,20,0.95);
+      padding: 16px;
       border-radius: 10px;
       position: relative;
-      min-height: 50px;
+      text-align: left;
+      box-sizing: border-box;
     }
     .copy-text {
-      word-break: break-all;
+      white-space: pre-wrap;       /* 保持换行与空格 */
+      word-break: break-word;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      color: #e6e6e6;
+      max-height: 420px;
+      overflow: auto;
+      padding-right: 110px; /* 给按钮留空间 */
+    }
+    .copy-meta {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
     .copy-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 5px 12px;
+      padding: 6px 12px;
       background: #00c3ff;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       color: #000;
       cursor: pointer;
-      transition: 0.3s;
+      font-weight: 700;
     }
-    .copy-btn:hover {
-      background: #ffd700;
+    .copy-btn:hover { background: #ffd700; }
+    .hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* 响应式 */
+    @media (max-width: 640px) {
+      .overlay { margin: 20px; padding: 20px; }
+      .copy-text { font-size: 13px; padding-right: 90px; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="overlay">
     <h1>Hello 大家好</h1>
-    <p>我是 <b>小纸盒</b>，这是我的个人网站。</p>
-    <p>很高兴你来到这里，我一般用来更新梯子。</p>
+    <p class="lead">我是 <b>小纸盒</b>，这是我的个人网站。很高兴你来到这里，我一般用来更新梯子。</p>
 
-    <!-- 可复制文本区域 -->
-    <div class="copy-box">
+    <div class="copy-box" role="region" aria-label="可复制内容">
       <div class="copy-text" id="copyText">加载中...</div>
-      <button class="copy-btn" onclick="copyText()">复制</button>
+
+      <div class="copy-meta">
+        <div class="hint" id="updatedHint">最后更新： -- </div>
+        <button class="copy-btn" id="copyBtn">复制</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // 从 text.txt 加载文本
-    function loadText() {
-      fetch("text.txt?_=" + new Date().getTime()) // 加时间戳避免缓存
-        .then(response => response.text())
-        .then(data => {
-          document.getElementById("copyText").innerText = data;
+    // ============ 配置区（已替换为你提供的 raw 链接） ============
+    const RAW_URL = 'https://raw.githubusercontent.com/chenzhihe424/chenzhihe424.github.io/refs/heads/main/text.txt';
+    const AUTO_REFRESH_SECONDS = 0; // >0 表示自动每 N 秒刷新一次（例如 30），设为 0 禁用自动刷新。
+    // ==========================================================================
+
+    const elText = document.getElementById('copyText');
+    const elHint = document.getElementById('updatedHint');
+    const copyBtn = document.getElementById('copyBtn');
+
+    function looksLikeHtml(str) {
+      if (!str) return false;
+      const s = str.trim().slice(0, 200).toLowerCase();
+      return s.startsWith('<!doctype') || s.startsWith('<html') || s.startsWith('<!doctype') || /<html|<head|<body|<div|<pre|<span/.test(s);
+    }
+
+    function setTextContent(text) {
+      elText.textContent = text;
+      const now = new Date();
+      elHint.textContent = '最后更新：' + now.toLocaleString();
+    }
+
+    function setError(msg) {
+      elText.textContent = msg;
+      elHint.textContent = '无法加载';
+    }
+
+    function loadTextAuto() {
+      const relUrl = 'text.txt?_=' + Date.now();
+      fetch(relUrl, {cache: "no-store"})
+        .then(r => r.text().then(t => ({ ok: r.ok, text: t, status: r.status })))
+        .then(({ok, text, status}) => {
+          if (!ok || looksLikeHtml(text)) {
+            // 相对路径失败或返回 HTML -> 尝试 raw 链接
+            if (RAW_URL && RAW_URL.indexOf('raw.githubusercontent.com') !== -1) {
+              return fetch(RAW_URL + (RAW_URL.includes('?') ? '&' : '?') + '_=' + Date.now(), {cache: "no-store"})
+                .then(r2 => {
+                  if (!r2.ok) throw new Error('raw 请求失败，状态 ' + r2.status);
+                  return r2.text();
+                })
+                .then(text2 => {
+                  if (looksLikeHtml(text2)) {
+                    throw new Error('raw 返回的是 HTML 页面（可能链接错误或网络问题）');
+                  }
+                  setTextContent(text2);
+                });
+            } else {
+              throw new Error('相对路径返回了 HTML，且 RAW_URL 未正确配置或不是 raw.githubusercontent 链接。');
+            }
+          } else {
+            // 相对路径返回的是纯文本，直接使用
+            setTextContent(text);
+          }
         })
         .catch(err => {
-          document.getElementById("copyText").innerText = "无法加载 text.txt";
+          console.error('加载 text.txt 出错：', err);
+          setError('无法加载 text.txt（请检查文件是否存在并确认 RAW_URL 正确）');
         });
     }
 
-    // 初始加载
-    loadText();
+    function doCopy(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          copyBtn.textContent = '已复制';
+          setTimeout(() => copyBtn.textContent = '复制', 1500);
+        }).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        copyBtn.textContent = '已复制';
+        setTimeout(() => copyBtn.textContent = '复制', 1500);
+      } catch (e) {
+        alert('复制失败，请手动选择并复制文本。');
+      }
+      document.body.removeChild(ta);
+    }
 
-    // 复制功能
-    function copyText() {
-      const text = document.getElementById("copyText").innerText;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("已复制到剪贴板！");
-      }).catch(err => {
-        alert("复制失败：" + err);
-      });
+    copyBtn.addEventListener('click', () => {
+      doCopy(elText.textContent || '');
+    });
+
+    // 初始加载
+    loadTextAuto();
+
+    // 自动刷新（如果设了时间）
+    if (AUTO_REFRESH_SECONDS && AUTO_REFRESH_SECONDS > 0) {
+      setInterval(loadTextAuto, AUTO_REFRESH_SECONDS * 1000);
     }
   </script>
 </body>
