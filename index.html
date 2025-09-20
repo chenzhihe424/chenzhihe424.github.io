@@ -6,17 +6,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     /* 引入自定义字体（放在 fonts/ 文件夹下） */
+    <style>
     @font-face {
-      font-family: "CocaColaKaiTi";   /* 给字体起个名字 */
-      src: url("font/Coca-ColaCareFontKaiTi.TTF") format("truetype");
+      font-family: 'Coca-ColaCareFontKaiTi';
+      src: url('fonts/Coca-ColaCareFontKaiTi.woff2') format('woff2'),
+           url('fonts/Coca-ColaCareFontKaiTi.woff') format('woff');
       font-weight: normal;
       font-style: normal;
     }
-
-    /* 基本样式 */
+  
     body {
       margin: 0;
-      font-family: "CocaColaKaiTi", "Microsoft YaHei", sans-serif;
+      font-family: 'Coca-ColaCareFontKaiTi', 'Coca-ColaCareFontKaiTi', serif;
       background: url("fig1.jpg") no-repeat center center fixed;
       background-size: cover;
       color: #fff;
